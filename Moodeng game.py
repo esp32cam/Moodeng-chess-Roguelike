@@ -130,4 +130,64 @@ class Game:
                     self.respawn_player()
         return False
 
-    def resp
+    def respawn_player(self):
+        safe_spots = []
+        for y in range(BOARD_SIZE):
+            for x in range(BOARD_SIZE):
+                if self.board[y][x] is None:
+                    is_safe = True
+                    for piece in self.ai_pieces:
+                        if abs(piece.x - x) <= 1 and abs(piece.y - y) <= 1:
+                            is_safe = False
+                            break
+                    if is_safe:
+                        safe_spots.append((x, y))
+        
+        if safe_spots:
+            new_x, new_y = random.choice(safe_spots)
+            self.board[self.player.y][self.player.x] = None
+            self.player.x, self.player.y = new_x, new_y
+            self.board[new_y][new_x] = self.player
+
+    def run(self):
+        running = True
+        while running:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    running = False
+                elif event.type == pygame.MOUSEBUTTONDOWN:
+                    if event.button == 1:  # Left click
+                        x = event.pos[0] // SQUARE_SIZE
+                        y = event.pos[1] // SQUARE_SIZE
+                        
+                        if not self.selected:
+                            if self.board[y][x] == self.player:
+                                self.selected = True
+                                self.valid_moves = self.get_valid_moves(self.player)
+                        else:
+                            if (x, y) in self.valid_moves:
+                                # Move player
+                                self.board[self.player.y][self.player.x] = None
+                                self.player.x, self.player.y = x, y
+                                self.board[y][x] = self.player
+                                self.selected = False
+                                self.valid_moves = []
+                                
+                                # AI turn
+                                game_over = self.ai_move()
+                                if game_over:
+                                    running = False
+                            self.selected = False
+                            self.valid_moves = []
+
+            self.draw_board()
+            if self.selected:
+                self.draw_valid_moves()
+            self.draw_pieces()
+            pygame.display.flip()
+
+        pygame.quit()
+
+if __name__ == "__main__":
+    game = Game()
+    game.run()
